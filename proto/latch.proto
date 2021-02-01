@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+option go_package = "github.com/replicate/replicate/go/pkg/servicepb";
+
+package service;
+
+import "google/protobuf/timestamp.proto";
+
+service Daemon {
+    rpc Ping (PingRequest) returns (PingReply) {}
+    rpc LaunchJob (LaunchJobRequest) returns (LaunchJobReply) {}
+}
+
+message PingRequest {
+}
+
+message PingReply {
+    bool success = 1;
+}
+
+message LaunchJobRequest {
+    Job job = 1;
+}
+
+message LaunchJobReply {
+    bool success = 1;
+}
+
+message Job {
+    string script = 1;
+    map<string, string> pythonPackages = 2;
+    string pythonVersion = 3;
+}

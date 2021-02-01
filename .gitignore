@@ -1,0 +1,14 @@
+.replicate
+.vscode/.ropeproject
+.mypy_cache
+*.egg-info/
+__pycache__/
+.tox
+go/release
+python/build
+python/dist
+python/replicate/bin
+/local
+.env*.local
+.idea
+.*.sw*

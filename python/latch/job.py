@@ -1,6 +1,8 @@
 import sys
 from dataclasses import dataclass, field
 from typing import Optional, Dict
+import inspect
+import os
 
 from .daemon import Daemon
 
@@ -47,12 +49,16 @@ class Job:
     A unit of computation (ie. script) operating on an arbitrary cluster.
     """
 
-    def __init__(self):
+    def __init__(self, entry_abs_path):
+        """
+        Note that one has to be careful with the absolute path of the
+        entrypoint script passed. (If stack manipulation is used to recover)
+        """
         self.python_version: float = _get_python_version()
         self.python_packages: Optional[Dict[str,
                                             str]] = _get_imported_packages()
         self.provider: Provider = ""
-        self.script: str = "/test/"
+        self.script: str = entry_abs_path
         self._daemon_instance: Daemon = Daemon(self)
 
     def _daemon(self) -> Daemon:
@@ -74,5 +80,7 @@ def init(
     """
     Create and launch a new job.
     """
-    # print(Job().ping())
-    print(Job().launch())
+    abs_path = os.path.abspath(inspect.stack()[1][1])
+    Job(abs_path).launch()
+    # Might be a better way terminate local script early.
+    quit()

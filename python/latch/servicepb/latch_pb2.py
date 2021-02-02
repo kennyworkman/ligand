@@ -18,9 +18,9 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='latch.proto',
   package='service',
   syntax='proto3',
-  serialized_options=b'Z/github.com/replicate/replicate/go/pkg/servicepb',
+  serialized_options=b'Z)github.com/latchai/latch/go/pkg/servicepb',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0blatch.proto\x12\x07service\x1a\x1fgoogle/protobuf/timestamp.proto\"\r\n\x0bPingRequest\"\x1c\n\tPingReply\x12\x0f\n\x07success\x18\x01 \x01(\x08\"-\n\x10LaunchJobRequest\x12\x19\n\x03job\x18\x01 \x01(\x0b\x32\x0c.service.Job\"!\n\x0eLaunchJobReply\x12\x0f\n\x07success\x18\x01 \x01(\x08\"\x9d\x01\n\x03Job\x12\x0e\n\x06script\x18\x01 \x01(\t\x12\x38\n\x0epythonPackages\x18\x02 \x03(\x0b\x32 .service.Job.PythonPackagesEntry\x12\x15\n\rpythonVersion\x18\x03 \x01(\t\x1a\x35\n\x13PythonPackagesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x32\x7f\n\x06\x44\x61\x65mon\x12\x32\n\x04Ping\x12\x14.service.PingRequest\x1a\x12.service.PingReply\"\x00\x12\x41\n\tLaunchJob\x12\x19.service.LaunchJobRequest\x1a\x17.service.LaunchJobReply\"\x00\x42\x31Z/github.com/replicate/replicate/go/pkg/servicepbb\x06proto3'
+  serialized_pb=b'\n\x0blatch.proto\x12\x07service\x1a\x1fgoogle/protobuf/timestamp.proto\"\r\n\x0bPingRequest\"\x1c\n\tPingReply\x12\x0f\n\x07success\x18\x01 \x01(\x08\"-\n\x10LaunchJobRequest\x12\x19\n\x03job\x18\x01 \x01(\x0b\x32\x0c.service.Job\"!\n\x0eLaunchJobReply\x12\x0f\n\x07success\x18\x01 \x01(\x08\"\x9d\x01\n\x03Job\x12\x0e\n\x06script\x18\x01 \x01(\t\x12\x38\n\x0epythonPackages\x18\x02 \x03(\x0b\x32 .service.Job.PythonPackagesEntry\x12\x15\n\rpythonVersion\x18\x03 \x01(\t\x1a\x35\n\x13PythonPackagesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x32\x7f\n\x06\x44\x61\x65mon\x12\x32\n\x04Ping\x12\x14.service.PingRequest\x1a\x12.service.PingReply\"\x00\x12\x41\n\tLaunchJob\x12\x19.service.LaunchJobRequest\x1a\x17.service.LaunchJobReply\"\x00\x42+Z)github.com/latchai/latch/go/pkg/servicepbb\x06proto3'
   ,
   dependencies=[google_dot_protobuf_dot_timestamp__pb2.DESCRIPTOR,])
 

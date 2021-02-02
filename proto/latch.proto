@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/replicate/replicate/go/pkg/servicepb";
+option go_package = "github.com/latchai/latch/go/pkg/servicepb";
 
 package service;
 

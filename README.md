@@ -1,7 +1,13 @@
 Latch
 ----
 
-A local entrypoint to cloud compute.
+A local entrypoint to cloud compute, built for bioinformaticians.
+
+<img src="https://github.com/latchai/latch-docs/raw/main/static/images/latch-cropped-demo.gif" width="700" />
+
+### Quickstart
+
+### Features
 
 ### Acknowledgements
 

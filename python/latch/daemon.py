@@ -3,6 +3,8 @@ import os
 import atexit
 import tempfile
 import functools
+import threading
+import sys
 
 import grpc
 from google.rpc import status_pb2, error_details_pb2
@@ -16,6 +18,25 @@ DAEMON_BINARY = os.path.join(os.path.dirname(__file__), "bin/latch-daemon")
 
 def _is_status_detail(x):
     return hasattr(x, "key") and x.key == "grpc-status-details-bin"
+
+
+def _start_wrapped_pipe(pipe, writer):
+    def wrap_pipe(pipe, writer):
+        with pipe:
+            for line in iter(pipe.readline, b""):
+                writer.write(line)
+                writer.flush()
+
+    # if writer is normal sys.std{out,err}, it can't
+    # write bytes directly.
+    # see https://stackoverflow.com/a/908440/135797
+    if hasattr(writer, "buffer"):
+        writer = writer.buffer
+
+    thread = threading.Thread(target=wrap_pipe, args=[
+                              pipe, writer], daemon=True)
+    thread.start()
+    return thread
 
 
 def _handle_exception(code, details):
@@ -106,10 +127,10 @@ class Daemon:
         # need to wrap stdout and stderr for this to work in jupyter
         # notebooks. jupyter redefines sys.std{out,err} as custom
         # writers that eventually write the output to the notebook.
-        # self.stdout_thread = start_wrapped_pipe(
-        #     self.process.stdout, sys.stdout)
-        # self.stderr_thread = start_wrapped_pipe(
-        #     self.process.stderr, sys.stderr)
+        self.stdout_thread = _start_wrapped_pipe(
+            self.process.stdout, sys.stdout)
+        self.stderr_thread = _start_wrapped_pipe(
+            self.process.stderr, sys.stderr)
 
         atexit.register(self.cleanup)
         self.channel = grpc.insecure_channel("unix://" + self.socket_path)

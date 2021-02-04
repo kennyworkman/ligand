@@ -33,8 +33,7 @@ def _start_wrapped_pipe(pipe, writer):
     if hasattr(writer, "buffer"):
         writer = writer.buffer
 
-    thread = threading.Thread(target=wrap_pipe, args=[
-                              pipe, writer], daemon=True)
+    thread = threading.Thread(target=wrap_pipe, args=[pipe, writer], daemon=True)
     thread.start()
     return thread
 
@@ -127,10 +126,8 @@ class Daemon:
         # need to wrap stdout and stderr for this to work in jupyter
         # notebooks. jupyter redefines sys.std{out,err} as custom
         # writers that eventually write the output to the notebook.
-        self.stdout_thread = _start_wrapped_pipe(
-            self.process.stdout, sys.stdout)
-        self.stderr_thread = _start_wrapped_pipe(
-            self.process.stderr, sys.stderr)
+        self.stdout_thread = _start_wrapped_pipe(self.process.stdout, sys.stdout)
+        self.stderr_thread = _start_wrapped_pipe(self.process.stderr, sys.stderr)
 
         atexit.register(self.cleanup)
         self.channel = grpc.insecure_channel("unix://" + self.socket_path)
@@ -161,7 +158,7 @@ class Daemon:
         pb_job = pb.Job(
             script=job.script,
             pythonPackages=job.python_packages,
-            pythonVersion=job.python_version
+            pythonVersion=job.python_version,
         )
 
         return self.stub.LaunchJob(

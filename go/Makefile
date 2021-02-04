@@ -22,3 +22,13 @@ build: clean
 
 run:
 		go run cmd/$(DAEMON)/main.go '/var/folders/ch/kcj80q7j7v1g99sb4ddslmp80000gn/T/latch-daemon-nihp5mef.sock'
+
+
+# In addition to fixing imports, goimports also formats your code in the same
+# style as gofmt so it can be used as a replacement for your editor's
+# gofmt-on-save hook.
+# https://pkg.go.dev/golang.org/x/tools/cmd/goimports
+#
+.PHONY: fmt
+fmt:
+	go run golang.org/x/tools/cmd/goimports --local latchai -w -d .

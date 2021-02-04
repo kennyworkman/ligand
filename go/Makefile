@@ -34,6 +34,24 @@ install: build
 	    sudo cp $(BINARY) $(INSTALL_PATH); \
 	fi
 
+
+#
+# Testing.
+#
+
+.PHONY: test
+test: check-fmt vet lint
+	go run gotest.tools/gotestsum -- -timeout 1200s -parallel 5 ./... $(ARGS)
+
+.PHONY: test-external
+test-external: check-fmt vet lint
+	go run gotest.tools/gotestsum -- -tags=external -timeout 1200s -parallel 5 ./... $(ARGS)
+
+
+#
+# Code Hygiene.
+#
+
 # In addition to fixing imports, goimports also formats your code in the same
 # style as gofmt so it can be used as a replacement for your editor's
 # gofmt-on-save hook.
@@ -42,3 +60,16 @@ install: build
 .PHONY: fmt
 fmt:
 	go run golang.org/x/tools/cmd/goimports --local latchai -w -d .
+
+.PHONY: check-fmt
+check-fmt:
+	go run golang.org/x/tools/cmd/goimports --local latchai -d .
+	@test -z $$(go run golang.org/x/tools/cmd/goimports --local latchai -l .)
+
+.PHONY: vet
+vet:
+	go vet ./...
+
+.PHONY: lint
+lint:
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint run ./...

@@ -5,15 +5,8 @@ import (
 )
 
 type NodeProvider interface {
-	GetNode() (Node, error)
-	DestroyNode(Node) error
-}
-
-type Node interface {
-	/* TODO: add methods */
-	// probably expose some methods for access
-	RunJob(job *Job) error
-	ID() (string, error)
+	GetNode() (*EC2Node, error)
+	DestroyNode(*EC2Node) error
 }
 
 // this is like the communication between computer <> script to run.
@@ -24,17 +17,16 @@ type Node interface {
 //	* communication with a console stdout
 //	* moving around of files
 
-func RunJob(np NodeProvider, job *Job) {
+func RunJob(np NodeProvider, cr CommandRunner, job *Job) {
 	node, err := np.GetNode()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// err = node.RunJob(job)
-	// // err = node.RunJob(job)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	err = cr.Run("echo 'hello'", node, &Console{})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	err = np.DestroyNode(node)
 	if err != nil {

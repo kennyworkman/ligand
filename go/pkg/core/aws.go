@@ -16,7 +16,6 @@ func NewAWSProvider() (*AWSProvider, error) {
 	}
 
 	return &AWSProvider{sess}, nil
-
 }
 
 // concrete type of provider
@@ -24,11 +23,7 @@ type AWSProvider struct {
 	sess *session.Session
 }
 
-type EC2Node struct {
-	instanceID string
-}
-
-func (awsp *AWSProvider) GetNode() (Node, error) {
+func (awsp *AWSProvider) GetNode() (*EC2Node, error) {
 	// Create EC2 service client
 	svc := ec2.New(awsp.sess)
 
@@ -43,36 +38,39 @@ func (awsp *AWSProvider) GetNode() (Node, error) {
 		return nil, err
 	}
 	instanceID := *runResult.Instances[0].InstanceId
+	instanceType := *runResult.Instances[0].InstanceType
+	availabilityZone := *runResult.Instances[0].Placement.AvailabilityZone
+	fmt.Printf("instance: %+v", *runResult.Instances[0])
 	fmt.Println("Created instance", instanceID)
 
-	return &EC2Node{instanceID}, nil
+	return &EC2Node{instanceID: instanceID, instanceType: instanceType, availabilityZone: availabilityZone, instanceOsUser: "ubuntu"}, nil
 }
 
-func (ec2n *EC2Node) RunJob(job *Job) error {
-	return nil
-}
+func (awsp *AWSProvider) DestroyNode(node *EC2Node) error {
 
-func (ec2n *EC2Node) ID() (string, error) {
-	return ec2n.instanceID, nil
-}
-
-func (awsp *AWSProvider) DestroyNode(node Node) error {
 	// Create EC2 service client
 	svc := ec2.New(awsp.sess)
-	instanceID, err := node.ID()
-	if err != nil {
-		return err
-	}
-
 	runResult, err := svc.TerminateInstances(&ec2.TerminateInstancesInput{
-		InstanceIds: []*string{aws.String(instanceID)},
+		InstanceIds: []*string{aws.String(node.instanceID)},
 	})
 	if err != nil {
 		fmt.Printf("error: ", err)
 		return err
 	}
-	fmt.Printf("results: ", runResult)
+	fmt.Printf("\ndestroy results: ", runResult)
 
 	return nil
 
+}
+
+type EC2Node struct {
+	instanceID       string
+	instanceType     string
+	availabilityZone string
+	publicDnsName    string
+	instanceOsUser   string
+}
+
+func (ec2n *EC2Node) GetHostName() string {
+	return ec2n.publicDnsName + ":80"
 }

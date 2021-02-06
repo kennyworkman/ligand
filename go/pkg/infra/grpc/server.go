@@ -27,78 +27,13 @@ func (s *server) LaunchJob(ctx context.Context, req *pb.LaunchJobRequest) (*pb.L
 		log.Fatal(err)
 	}
 
-	core.RunJob(aws, &core.Job{})
-	// // cluster config file name
-	// filename := "generated.yaml"
-	// // pythonVersion := req.Job.PythonVersion
-	// depen := depenMapToYAML(req.Job.PythonPackages)
-	// template := formatYAML("g4dn.xlarge", strconv.Itoa(1), depen)
-	// scriptPath := req.Job.Script
-	// dir, file := filepath.Split(scriptPath)
-	// rayConfig := filepath.Join(dir, filename)
-	// remotePath := filepath.Join("/home/ray/", file)
+	cr, err := core.NewAWSCommandRunner()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// err := ioutil.WriteFile(rayConfig, []byte(template), 0644)
-	// if err != nil {
-	// 	return &pb.LaunchJobReply{Success: false}, err
-	// }
+	core.RunJob(aws, cr, &core.Job{})
 
-	// // 1. Construct cluster
-	// console.Info("\n📡 Constructing your ephemeral cluster...")
-	// cmd := exec.Command("ray", "up", rayConfig, "-y")
-	// _, err = cmd.Output()
-	// if err != nil {
-	// 	return &pb.LaunchJobReply{Success: false}, err
-	// }
-
-	// input, err := ioutil.ReadFile(scriptPath)
-	// if err != nil {
-	// 	return &pb.LaunchJobReply{Success: false}, err
-	// }
-
-	// lines := strings.Split(string(input), "\n")
-
-	// for i, line := range lines {
-	// 	if strings.Contains(line, "import latch") || strings.Contains(line, "latch.init") {
-	// 		lines[i] = ""
-	// 	}
-	// }
-
-	// output := strings.Join(lines, "\n")
-	// scriptPath = strings.Replace(scriptPath, ".py", "_remote.py", 1)
-	// err = ioutil.WriteFile(scriptPath, []byte(output), 0644)
-	// if err != nil {
-	// 	return &pb.LaunchJobReply{Success: false}, err
-	// }
-
-	// // // 2. Send necessary files to cluster
-	// console.Info("📂 Syncing necessary files to the cloud...")
-	// cmd = exec.Command("ray", "rsync_up", filename, scriptPath, remotePath)
-	// err = cmd.Run()
-	// if err != nil {
-	// 	return &pb.LaunchJobReply{Success: false}, err
-	// }
-
-	// // 3. Execute remote script
-	// console.Info("🛠️ Executing your script:")
-	// remoteCommand := fmt.Sprintf("sudo env \"PATH=$PATH\" python %s", remotePath)
-	// cmd = exec.Command("ray", "exec", filename, remoteCommand)
-	// cmd.Stdout = os.Stdout
-	// // cmd.Stderr = os.Stderr
-	// err = cmd.Run()
-	// if err != nil {
-	// 	return &pb.LaunchJobReply{Success: false}, err
-	// }
-
-	// // // 4. Tear down cluster
-	// console.Info("\n🚜 Tearing down your ephermal cluster...")
-	// cmd = exec.Command("ray", "down", filename, "-y")
-	// err = cmd.Run()
-	// if err != nil {
-	// 	return &pb.LaunchJobReply{Success: false}, err
-	// }
-
-	// return nil
 	return &pb.LaunchJobReply{Success: true}, nil
 }
 

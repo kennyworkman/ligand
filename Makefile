@@ -39,6 +39,10 @@ test-external: install-test-dependencies develop
 	cd python && $(MAKE) test-external
 	cd end-to-end-test && $(MAKE) test-external
 
+.PHONY: test-scripts
+test-scripts: install-test-dependencies develop
+	cd end-to-end-test && $(MAKE) test-scripts
+
 .PHONY: release
 release: check-version-var verify-clean-main bump-version
 	git add go/Makefile python/ligand/version.py web/.env

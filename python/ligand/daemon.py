@@ -13,7 +13,7 @@ from .servicepb.latch_pb2_grpc import DaemonStub
 from .servicepb import latch_pb2 as pb
 from . import exceptions
 
-DAEMON_BINARY = os.path.join(os.path.dirname(__file__), "bin/latch-daemon")
+DAEMON_BINARY = os.path.join(os.path.dirname(__file__), "bin/ligand-daemon")
 
 
 def _is_status_detail(x):
@@ -98,7 +98,7 @@ class Daemon:
             # create a new temporary file just to get a free name.
             # the Go GRPC server will create the file.
             f = tempfile.NamedTemporaryFile(
-                prefix="latch-daemon-", suffix=".sock", delete=False
+                prefix="ligand-daemon-", suffix=".sock", delete=False
             )
             self.socket_path = f.name
             f.close()

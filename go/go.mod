@@ -3,6 +3,7 @@ module github.com/latchai/latch
 go 1.14
 
 require (
+	github.com/aws/aws-sdk-go v1.37.5
 	github.com/gernest/wow v0.1.0
 	github.com/golang/protobuf v1.4.2
 	github.com/golangci/golangci-lint v1.36.0 // indirect

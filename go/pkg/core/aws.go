@@ -29,7 +29,8 @@ func (awsp *AWSProvider) GetNode() (*EC2Node, error) {
 
 	runResult, err := svc.RunInstances(&ec2.RunInstancesInput{
 		// An Amazon Linux AMI ID for t2.micro instances in the us-west-2 region
-		ImageId:      aws.String("ami-0828a1066dc750737"),
+		// ImageId:      aws.String("ami-0828a1066dc750737"),
+		ImageId:      aws.String("ami-07dd19a7900a1f049"),
 		InstanceType: aws.String("t2.micro"),
 		MinCount:     aws.Int64(1),
 		MaxCount:     aws.Int64(1),
@@ -72,5 +73,5 @@ type EC2Node struct {
 }
 
 func (ec2n *EC2Node) GetHostName() string {
-	return ec2n.publicDnsName + ":80"
+	return ec2n.publicDnsName + ":22"
 }

@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -75,7 +77,7 @@ func (awscr *AWSCommandRunner) Run(cmd string, node *EC2Node, cons *Console) err
 
 	// Send ssh key to instance.
 	svc2 := ec2instanceconnect.New(awscr.sess)
-	sshBytes, err := getPublicKey()
+	sshBytes, err := ioutil.ReadFile(os.Getenv("HOME") + "/.ssh/id_rsa.pub")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -83,9 +85,10 @@ func (awscr *AWSCommandRunner) Run(cmd string, node *EC2Node, cons *Console) err
 		AvailabilityZone: aws.String(node.availabilityZone),
 		InstanceId:       aws.String(node.instanceID),
 		InstanceOSUser:   aws.String(node.instanceOsUser),
-		SSHPublicKey:     aws.String(string(sshBytes)),
+		SSHPublicKey:     aws.String(strings.TrimSpace(string(sshBytes))),
 	}
 
+	fmt.Println("\nsending public key")
 	sendSSHRes, err := svc2.SendSSHPublicKey(input2)
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok {
@@ -113,21 +116,50 @@ func (awscr *AWSCommandRunner) Run(cmd string, node *EC2Node, cons *Console) err
 	}
 	fmt.Printf("\nsshResults %+v", sendSSHRes)
 
-	// Communicate with instance via ssh.
-	config := &ssh.ClientConfig{
-		User: node.instanceOsUser,
-		Auth: []ssh.AuthMethod{publicKey("/Users/kenny/.ssh/id_rsa")},
-	}
+	key := os.Getenv("HOME") + "/.ssh/id_rsa"
+	runner := exec.Command("ssh", "-oStrictHostKeyChecking=no", fmt.Sprintf("%s@%s", node.instanceOsUser, node.publicDnsName), fmt.Sprintf("-i%s", key))
+	fmt.Printf("\ncommand: %+v", runner)
+	runner.Stdin = os.Stdin
+	runner.Stdout = os.Stdout
+	runner.Stderr = os.Stderr
+	runner.Run()
 
-	fmt.Printf("\nhostname: %+v", node.GetHostName())
-	conn, err := ssh.Dial("tcp", node.GetHostName(), config)
-	if err != nil {
-		fmt.Printf("\nssh error: %+v", err)
-		return err
-	}
-	defer conn.Close()
+	// pk, _ := ioutil.ReadFile(os.Getenv("HOME") + "/.ssh/id_rsa")
+	// signer, err := ssh.ParsePrivateKey(pk)
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	runCommand("cat /dev/urandom", conn)
+	// // Communicate with instance via ssh.
+	// cfg := &ssh.ClientConfig{
+	// 	User: node.instanceOsUser,
+	// 	Auth: []ssh.AuthMethod{ssh.PublicKeys(signer)},
+	// }
+	// cfg.SetDefaults()
+
+	// fmt.Printf("\n:user %+v", node.instanceOsUser)
+	// fmt.Printf("\nhostname: %+v", node.GetHostName())
+
+	// fmt.Println("\nsleeping")
+	// time.Sleep(5 * time.Second)
+	// fmt.Println("\nattempting connection")
+	// client, err := ssh.Dial("tcp", node.GetHostName(), cfg)
+	// if err != nil {
+	// 	fmt.Printf("\nssh error: %+v", err)
+	// 	return err
+	// }
+	// defer client.Close()
+
+	// session, err := client.NewSession()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	// fmt.Printf("we have a session! %+v", session)
+
+	// fmt.Println("launched")
+	// runCommand("cat /dev/urandom", conn)
+	// time.Sleep(2 * time.Second)
 
 	return nil
 }
@@ -145,8 +177,12 @@ type DockerRunner struct {
 
 // TODO: refactor below
 // raw bytes
-func getPublicKey() ([]byte, error) {
-	return ioutil.ReadFile("/Users/kenny/.ssh/id_rsa.pub")
+func getPublicKey() (string, error) {
+	byteKey, err := ioutil.ReadFile("/Users/kenny/.ssh/id_rsa.pub")
+	if err != nil {
+		return "", err
+	}
+	return string(byteKey), nil
 }
 
 // implementation for ssh client

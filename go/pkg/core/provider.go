@@ -53,9 +53,13 @@ func setupCommand(job *Job) string {
 	cmd += "\nsudo add-apt-repository ppa:deadsnakes/ppa -y"
 	cmd += "\nsudo apt-get update"
 	cmd += fmt.Sprintf("\nsudo apt-get install python%s -y", job.PythonVersion)
+	cmd += fmt.Sprintf("\nsudo apt-get install python3-pip -y")
 	cmd += fmt.Sprintf("\npython%s --version", job.PythonVersion)
 	for k, v := range job.PythonDependencies {
-		cmd += fmt.Sprintf("\npython%s -m pip install %s:%s", job.PythonVersion, k, v)
+		if k == "ligand" {
+			continue
+		}
+		cmd += fmt.Sprintf("\npython%s -m pip install %s==%s", job.PythonVersion, k, v)
 	}
 	cmd += fmt.Sprintf("\npython%s -m pip show six", job.PythonVersion)
 	fmt.Printf(cmd)

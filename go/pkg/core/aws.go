@@ -2,6 +2,10 @@ package core
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+	"os/exec"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -15,7 +19,57 @@ func NewAWSProvider() (*AWSProvider, error) {
 		return nil, err
 	}
 
+	// Check if aws CLI installed.
+	_, err = exec.LookPath("aws")
+	if err != nil {
+		log.Println(error.Error(err))
+		// TODO: better error handling
+		// We don't necessarily need the cli to use go sdk...
+		downloadAWS()
+	}
+
+	// Check that aws CLI is configured
+	_, err = ioutil.ReadFile(os.Getenv("HOME") + "/.aws/config")
+	if err != nil {
+		log.Println(error.Error(err))
+		// TODO: better error handling
+		configureAWS()
+	}
+	_, err = ioutil.ReadFile(os.Getenv("HOME") + "/.aws/credentials")
+	if err != nil {
+		log.Println(error.Error(err))
+		// TODO: better error handling
+		configureAWS()
+	}
+
+	// if not
+
+	// setup provider
+	// prompt for cli download if no .aws
+	// creat latch .pem file
+
 	return &AWSProvider{sess}, nil
+}
+
+// Works on osx.
+func downloadAWS() {
+	cmd := exec.Command("curl", "https://awscli.amazonaws.com/AWSCLIV2.pkg", "-oAWSCLIV2.pkg")
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+
+	cmd = exec.Command("sudo", "installer", "-pkg", "AWSCLIV2.pkg", "-target", "/")
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+}
+
+// Contingent on aws cli binary present.
+func configureAWS() {
+	cmd := exec.Command("aws", "config")
+	cmd.Run()
 }
 
 // concrete type of provider

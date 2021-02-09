@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"log"
 )
 
@@ -23,15 +24,17 @@ func RunJob(np NodeProvider, cr CommandRunner, job *Job) {
 		log.Fatal(err)
 	}
 
-	err = cr.Run("echo 'hello'", node, &Console{})
+	// Setup machine command
+	fmt.Printf("py version: %s, depend: %+v", job.PythonVersion, job.PythonDependencies)
+	err = cr.Run(setupCommand(job), node, &Console{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	err = np.DestroyNode(node)
-	if err != nil {
-		log.Fatal(err)
-	}
+	// err = np.DestroyNode(node)
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 }
 
 // A Job is a unit of computation that is launched locally on some cluster
@@ -40,4 +43,21 @@ type Job struct {
 	PythonDependencies map[string]string
 	PythonVersion      string
 	// TODO: other dependencies
+}
+
+// Helper function for to activate correct env in AWS AMI. Also install
+// additional python depen.
+func setupCommand(job *Job) string {
+	cmd := "sudo apt-get install software-properties-common"
+	cmd += "\nsudo killall apt apt-get"
+	cmd += "\nsudo add-apt-repository ppa:deadsnakes/ppa -y"
+	cmd += "\nsudo apt-get update"
+	cmd += fmt.Sprintf("\nsudo apt-get install python%s -y", job.PythonVersion)
+	cmd += fmt.Sprintf("\npython%s --version", job.PythonVersion)
+	for k, v := range job.PythonDependencies {
+		cmd += fmt.Sprintf("\npython%s -m pip install %s:%s", job.PythonVersion, k, v)
+	}
+	cmd += fmt.Sprintf("\npython%s -m pip show six", job.PythonVersion)
+	fmt.Printf(cmd)
+	return cmd
 }

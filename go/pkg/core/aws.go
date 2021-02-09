@@ -29,11 +29,15 @@ func (awsp *AWSProvider) GetNode() (*EC2Node, error) {
 
 	runResult, err := svc.RunInstances(&ec2.RunInstancesInput{
 		// An Amazon Linux AMI ID for t2.micro instances in the us-west-2 region
-		// ImageId:      aws.String("ami-0828a1066dc750737"),
-		ImageId:      aws.String("ami-07dd19a7900a1f049"),
+		// ImageId: aws.String("ami-0b1a80ce62c464a55"),
+		// 20.04 w/o anything
+		// ImageId:      aws.String("ami-07dd19a7900a1f049"),
+		// ImageId:      aws.String("ami-0b1a80ce62c464a55"),
+		ImageId:      aws.String("ami-0828a1066dc750737"),
 		InstanceType: aws.String("t2.micro"),
 		MinCount:     aws.Int64(1),
 		MaxCount:     aws.Int64(1),
+		KeyName:      aws.String("latch"),
 	})
 	if err != nil {
 		return nil, err
@@ -42,7 +46,7 @@ func (awsp *AWSProvider) GetNode() (*EC2Node, error) {
 	instanceType := *runResult.Instances[0].InstanceType
 	availabilityZone := *runResult.Instances[0].Placement.AvailabilityZone
 	fmt.Printf("instance: %+v", *runResult.Instances[0])
-	fmt.Println("Created instance", instanceID)
+	fmt.Println("\nCreated instance", instanceID)
 
 	return &EC2Node{instanceID: instanceID, instanceType: instanceType, availabilityZone: availabilityZone, instanceOsUser: "ubuntu"}, nil
 }
@@ -68,10 +72,10 @@ type EC2Node struct {
 	instanceID       string
 	instanceType     string
 	availabilityZone string
-	publicDnsName    string
+	publicIpAddress  string
 	instanceOsUser   string
 }
 
 func (ec2n *EC2Node) GetHostName() string {
-	return ec2n.publicDnsName + ":22"
+	return ec2n.publicIpAddress + ":22"
 }

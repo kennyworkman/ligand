@@ -43,15 +43,6 @@ test-external: install-test-dependencies develop
 test-scripts: install-test-dependencies develop
 	cd end-to-end-test && $(MAKE) test-scripts
 
-.PHONY: release
-release: check-version-var verify-clean-main bump-version
-	git add go/Makefile python/ligand/version.py web/.env
-	git commit -m "Bump to version $(VERSION)"
-	git tag "v$(VERSION)"
-	git push git@github.com:latchai/ligand.git main
-	git push git@github.com:latchai/ligand.git main --tags
-	git push git@github.com:latchai/ligand.git main:website --force
-
 .PHONY: verify-version
 # TODO: quick and dirty - customize for ligand workflow
 bump-version:

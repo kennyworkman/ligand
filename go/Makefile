@@ -2,6 +2,8 @@ NAME := ligand
 RELEASE_DIR := release
 ENVIRONMENT := dev
 
+PLATFORMS := darwin linux
+ARCHITECTURES := amd64
 GOOS := $(shell go env GOOS)
 GOARCH := $(shell go env GOARCH)
 LDFLAGS := -ldflags "-X github.com/latchai/ligand/go/pkg/global.Version=$(VERSION) -X github.com/latchai/ligand/go/pkg/global.Environment=$(ENVIRONMENT) -w"
@@ -33,6 +35,15 @@ install: build
 	else \
 	    sudo cp $(BINARY) $(INSTALL_PATH); \
 	fi
+
+.PHONY: build-all
+build-all:
+	@mkdir -p $(RELEASE_DIR)
+	$(foreach GOOS, $(PLATFORMS),\
+	$(foreach GOARCH, $(ARCHITECTURES), \
+		GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build $(LDFLAGS) -o $(BINARY) $(MAIN); \
+		GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build $(LDFLAGS) -o $(SHARED_BINARY) $(SHARED_MAIN); \
+	))
 
 
 #

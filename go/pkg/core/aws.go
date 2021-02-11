@@ -28,7 +28,7 @@ func NewAWSProvider() (*AWSProvider, error) {
 		downloadAWS()
 	}
 
-	// Check that aws CLI is configured
+	// Check that aws CLI is configured.
 	_, err = ioutil.ReadFile(os.Getenv("HOME") + "/.aws/config")
 	if err != nil {
 		log.Println(error.Error(err))
@@ -43,10 +43,21 @@ func NewAWSProvider() (*AWSProvider, error) {
 	}
 
 	// if not
+	pemPath := os.Getenv("HOME") + "/.ssh/latch.pem"
+	if _, err := os.Stat(pemPath); os.IsNotExist(err) {
+		fmt.Println("pem file doesn't exist")
 
-	// setup provider
-	// prompt for cli download if no .aws
-	// creat latch .pem file
+		svc := ec2.New(sess)
+		keyPairResult, err := svc.CreateKeyPair(&ec2.CreateKeyPairInput{KeyName: aws.String("latch")})
+		if err != nil {
+			return nil, err
+		}
+		keyMaterial := keyPairResult.KeyMaterial
+		ioutil.WriteFile(os.Getenv("HOME")+"/.ssh/latch.pem", []byte(*keyMaterial), 0700)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return &AWSProvider{sess}, nil
 }

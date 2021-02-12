@@ -42,7 +42,7 @@ func NewAWSProvider() (*AWSProvider, error) {
 		configureAWS()
 	}
 
-	// if not
+	// If a latch private key does not exist, make one.
 	pemPath := os.Getenv("HOME") + "/.ssh/latch.pem"
 	if _, err := os.Stat(pemPath); os.IsNotExist(err) {
 		fmt.Println("pem file doesn't exist")

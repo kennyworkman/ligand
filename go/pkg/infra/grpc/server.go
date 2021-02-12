@@ -35,7 +35,7 @@ func (s *server) LaunchJob(ctx context.Context, req *pb.LaunchJobRequest) (*pb.L
 	pyVersionA := strings.Split(req.Job.PythonVersion, ".")
 	pyVersion := pyVersionA[0] + "." + pyVersionA[1]
 
-	core.RunJob(aws, cr, &core.Job{PythonDependencies: req.Job.PythonPackages, PythonVersion: pyVersion})
+	core.RunJob(aws, cr, &core.Job{Script: req.Job.Script, PythonDependencies: req.Job.PythonPackages, PythonVersion: pyVersion})
 
 	return &pb.LaunchJobReply{Success: true}, nil
 }

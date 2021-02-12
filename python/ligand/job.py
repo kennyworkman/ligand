@@ -78,6 +78,9 @@ def init(data: Optional[str] = None, out: Optional[str] = None):
     """
     Create and launch a new job.
     """
+    if os.environ.get("LATCH_REMOTE"):
+        print("\nremote...")
+        return
     abs_path = os.path.abspath(inspect.stack()[1][1])
     Job(abs_path).launch()
     # Might be a better way terminate local script early.

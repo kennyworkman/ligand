@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -16,8 +17,9 @@ import (
 )
 
 type CommandRunner interface {
+	WaitNodeRunning(node *EC2Node, cons *Console) (bool, error)
 	Run(cmd string, node *EC2Node, cons *Console) error
-	RsyncUp() error
+	RsyncUp(source string, node *EC2Node, cons *Console) error
 	RsyncDown() error
 }
 
@@ -25,6 +27,7 @@ type AWSCommandRunner struct {
 	sess *session.Session
 }
 
+// A CommandRunner can run shell script on a Node.
 func NewAWSCommandRunner() (*AWSCommandRunner, error) {
 	sess, err := session.NewSession(&aws.Config{
 		Region: aws.String("us-west-2")})
@@ -37,40 +40,6 @@ func NewAWSCommandRunner() (*AWSCommandRunner, error) {
 }
 
 func (awscr *AWSCommandRunner) Run(cmd string, node *EC2Node, cons *Console) error {
-
-	// Wait for instance status = 'running'.
-	svc := ec2.New(awscr.sess)
-	input := &ec2.DescribeInstancesInput{
-		InstanceIds: []*string{aws.String(node.instanceID)},
-	}
-
-	// TODO: Hack, leverage channels/concurrency
-	for i := 0; i < 100; i++ {
-		result, err := svc.DescribeInstances(input)
-		if err != nil {
-			if aerr, ok := err.(awserr.Error); ok {
-				switch aerr.Code() {
-				default:
-					fmt.Println(err.Error())
-					fmt.Println("Trying again...")
-					time.Sleep(1 * time.Second)
-					continue
-				}
-			} else {
-				fmt.Println(err.Error())
-				return err
-			}
-		}
-		state := result.Reservations[0].Instances[0].State
-		fmt.Println(state)
-		ip := result.Reservations[0].Instances[0].PublicIpAddress
-		if *state.Name == "running" {
-			fmt.Printf("\nip name: %+v", *ip)
-			node.publicIpAddress = *ip
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
 
 	for i := 0; i < 2; i++ {
 
@@ -90,7 +59,76 @@ func (awscr *AWSCommandRunner) Run(cmd string, node *EC2Node, cons *Console) err
 	return nil
 }
 
-func (awscr *AWSCommandRunner) RsyncUp() error {
+func (awscr *AWSCommandRunner) WaitNodeRunning(node *EC2Node, cons *Console) (bool, error) {
+
+	// Wait for instance status = 'running'.
+	svc := ec2.New(awscr.sess)
+
+	success := make(chan bool, 1)
+	go attemptConnect(svc, node, success)
+
+	select {
+	case suc := <-success:
+		return suc, nil
+	}
+
+}
+
+// Concurrent routine to ping for instance availability.
+func attemptConnect(svc *ec2.EC2, node *EC2Node, success chan bool) {
+
+	fmt.Println("spawned attempt routine")
+
+	input := &ec2.DescribeInstancesInput{
+		InstanceIds: []*string{aws.String(node.instanceID)},
+	}
+	result, err := svc.DescribeInstances(input)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			switch aerr.Code() {
+			default:
+				fmt.Println(err.Error())
+				fmt.Println("Trying again...")
+				time.Sleep(1 * time.Second)
+				attemptConnect(svc, node, success)
+			}
+		} else {
+			fmt.Println(err.Error())
+			return
+		}
+	}
+
+	state := result.Reservations[0].Instances[0].State
+	fmt.Println(state)
+	ip := result.Reservations[0].Instances[0].PublicIpAddress
+	if *state.Name == "running" {
+		fmt.Printf("\nip name: %+v", *ip)
+		node.publicIpAddress = *ip
+		success <- true
+		return
+	}
+	time.Sleep(1 * time.Second)
+	go attemptConnect(svc, node, success)
+}
+
+func (awscr *AWSCommandRunner) RsyncUp(source string, node *EC2Node, console *Console) error {
+
+	for i := 0; i < 2; i++ {
+		fmt.Println("connecting now...")
+		key := os.Getenv("HOME") + "/.ssh/latch.pem"
+		_, sourceFile := filepath.Split(source)
+		target := "/home/ubuntu/" + sourceFile
+
+		runner := exec.Command("rsync", "-avz", "-progress", "-e", fmt.Sprintf("ssh -i%s", key), source, fmt.Sprintf("%s@%s:%s", node.instanceOsUser, node.publicIpAddress, target), "-y")
+		fmt.Printf("cmd: %+v", runner)
+
+		runner.Stdin = os.Stdin
+		runner.Stdout = os.Stdout
+		runner.Stderr = os.Stderr
+		runner.Run()
+		time.Sleep(10 * time.Second)
+
+	}
 	return nil
 }
 

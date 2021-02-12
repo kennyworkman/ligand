@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 )
 
 type NodeProvider interface {
@@ -24,17 +25,34 @@ func RunJob(np NodeProvider, cr CommandRunner, job *Job) {
 		log.Fatal(err)
 	}
 
+	fmt.Printf("Waiting for your node to be available...")
+	success, err := cr.WaitNodeRunning(node, &Console{})
+	if err != nil {
+		fmt.Printf("out chan: %+v", success)
+		log.Fatal(err)
+	}
+
 	// Setup machine command
-	fmt.Printf("py version: %s, depend: %+v", job.PythonVersion, job.PythonDependencies)
 	err = cr.Run(setupCommand(job), node, &Console{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// err = np.DestroyNode(node)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
+	err = cr.RsyncUp(job.Script, node, &Console{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, sourceFile := filepath.Split(job.Script)
+	err = cr.Run(fmt.Sprintf("python3 /home/ubuntu/%s", sourceFile), node, &Console{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	err = np.DestroyNode(node)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 // A Job is a unit of computation that is launched locally on some cluster
@@ -55,10 +73,8 @@ func setupCommand(job *Job) string {
 	cmd += fmt.Sprintf("\nsudo apt-get install python%s -y", job.PythonVersion)
 	cmd += fmt.Sprintf("\nsudo apt-get install python3-pip -y")
 	cmd += fmt.Sprintf("\npython%s --version", job.PythonVersion)
+	cmd += fmt.Sprintf("\nexport LATCH_REMOTE=true")
 	for k, v := range job.PythonDependencies {
-		if k == "ligand" {
-			continue
-		}
 		cmd += fmt.Sprintf("\npython%s -m pip install %s==%s", job.PythonVersion, k, v)
 	}
 	cmd += fmt.Sprintf("\npython%s -m pip show six", job.PythonVersion)

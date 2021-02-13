@@ -93,11 +93,6 @@ func (awsp *AWSProvider) GetNode() (*EC2Node, error) {
 	svc := ec2.New(awsp.sess)
 
 	runResult, err := svc.RunInstances(&ec2.RunInstancesInput{
-		// An Amazon Linux AMI ID for t2.micro instances in the us-west-2 region
-		// ImageId: aws.String("ami-0b1a80ce62c464a55"),
-		// 20.04 w/o anything
-		// ImageId:      aws.String("ami-07dd19a7900a1f049"),
-		// ImageId:      aws.String("ami-0b1a80ce62c464a55"),
 		ImageId:      aws.String("ami-0828a1066dc750737"),
 		InstanceType: aws.String("t2.micro"),
 		MinCount:     aws.Int64(1),
@@ -110,8 +105,6 @@ func (awsp *AWSProvider) GetNode() (*EC2Node, error) {
 	instanceID := *runResult.Instances[0].InstanceId
 	instanceType := *runResult.Instances[0].InstanceType
 	availabilityZone := *runResult.Instances[0].Placement.AvailabilityZone
-	fmt.Printf("instance: %+v", *runResult.Instances[0])
-	fmt.Println("\nCreated instance", instanceID)
 
 	return &EC2Node{instanceID: instanceID, instanceType: instanceType, availabilityZone: availabilityZone, instanceOsUser: "ubuntu"}, nil
 }
@@ -120,14 +113,13 @@ func (awsp *AWSProvider) DestroyNode(node *EC2Node) error {
 
 	// Create EC2 service client
 	svc := ec2.New(awsp.sess)
-	runResult, err := svc.TerminateInstances(&ec2.TerminateInstancesInput{
+	_, err := svc.TerminateInstances(&ec2.TerminateInstancesInput{
 		InstanceIds: []*string{aws.String(node.instanceID)},
 	})
 	if err != nil {
 		fmt.Printf("error: ", err)
 		return err
 	}
-	fmt.Printf("\ndestroy results: ", runResult)
 
 	return nil
 

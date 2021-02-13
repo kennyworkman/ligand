@@ -45,7 +45,7 @@ func (awscr *AWSCommandRunner) Run(cmd string, node *EC2Node, cons *Console) err
 
 		fmt.Printf("connecting")
 		key := os.Getenv("HOME") + "/.ssh/latch.pem"
-		runner := exec.Command("ssh", "-oStrictHostKeyChecking=no", fmt.Sprintf("%s@%s", node.instanceOsUser, node.publicIpAddress), fmt.Sprintf("-i%s", key), cmd)
+		runner := exec.Command("ssh", "-oStrictHostKeyChecking=no", fmt.Sprintf("%s@%s", node.instanceOsUser, node.publicIpAddress), fmt.Sprintf("-i%s", key), "-y", cmd)
 
 		runner.Stdin = os.Stdin
 		runner.Stdout = os.Stdout

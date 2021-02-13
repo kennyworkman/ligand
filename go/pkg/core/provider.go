@@ -44,7 +44,7 @@ func RunJob(np NodeProvider, cr CommandRunner, job *Job) {
 	}
 
 	_, sourceFile := filepath.Split(job.Script)
-	err = cr.Run(fmt.Sprintf("python3 /home/ubuntu/%s", sourceFile), node, &Console{})
+	err = cr.Run(fmt.Sprintf("python%s /home/ubuntu/%s", job.PythonVersion, sourceFile), node, &Console{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -55,14 +55,6 @@ func RunJob(np NodeProvider, cr CommandRunner, job *Job) {
 	}
 }
 
-// A Job is a unit of computation that is launched locally on some cluster
-type Job struct {
-	Script             string // Absolute path from local machine
-	PythonDependencies map[string]string
-	PythonVersion      string
-	// TODO: other dependencies
-}
-
 // Helper function for to activate correct env in AWS AMI. Also install
 // additional python depen.
 func setupCommand(job *Job) string {
@@ -70,11 +62,14 @@ func setupCommand(job *Job) string {
 	cmd += "\nsudo killall apt apt-get"
 	cmd += "\nsudo add-apt-repository ppa:deadsnakes/ppa -y"
 	cmd += "\nsudo apt-get update"
-	cmd += fmt.Sprintf("\nsudo apt-get install python%s -y", job.PythonVersion)
+	cmd += fmt.Sprintf("\nsudo apt-get install python%s-dev -y", job.PythonVersion)
 	cmd += fmt.Sprintf("\nsudo apt-get install python3-pip -y")
 	cmd += fmt.Sprintf("\npython%s --version", job.PythonVersion)
 	cmd += fmt.Sprintf("\nexport LATCH_REMOTE=true")
 	for k, v := range job.PythonDependencies {
+		if k == "ligand" {
+			continue
+		}
 		cmd += fmt.Sprintf("\npython%s -m pip install %s==%s", job.PythonVersion, k, v)
 	}
 	cmd += fmt.Sprintf("\npython%s -m pip show six", job.PythonVersion)

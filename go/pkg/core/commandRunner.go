@@ -1,6 +1,7 @@
 package core
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,6 +18,7 @@ import (
 )
 
 type CommandRunner interface {
+	WaitConnectionPossible(node *EC2Node, cons *Console) error
 	WaitNodeRunning(node *EC2Node, cons *Console) (bool, error)
 	Run(cmd string, node *EC2Node, cons *Console) error
 	RsyncUp(source string, node *EC2Node, cons *Console) error
@@ -41,22 +43,58 @@ func NewAWSCommandRunner() (*AWSCommandRunner, error) {
 
 func (awscr *AWSCommandRunner) Run(cmd string, node *EC2Node, cons *Console) error {
 
-	for i := 0; i < 2; i++ {
+	key := os.Getenv("HOME") + "/.ssh/latch.pem"
+	runner := exec.Command("ssh", "-oStrictHostKeyChecking=no", fmt.Sprintf("%s@%s", node.instanceOsUser, node.publicIpAddress), fmt.Sprintf("-i%s", key), "-y", cmd)
 
-		fmt.Printf("connecting")
-		key := os.Getenv("HOME") + "/.ssh/latch.pem"
-		runner := exec.Command("ssh", "-oStrictHostKeyChecking=no", fmt.Sprintf("%s@%s", node.instanceOsUser, node.publicIpAddress), fmt.Sprintf("-i%s", key), "-y", cmd)
+	runner.Stdin = os.Stdin
+	runner.Stdout = os.Stdout
+	runner.Stderr = os.Stderr
+	runner.Run()
+	return nil
 
-		runner.Stdin = os.Stdin
-		runner.Stdout = os.Stdout
-		runner.Stderr = os.Stderr
-		runner.Run()
+}
 
-		fmt.Printf("sleeping and trying again")
-		time.Sleep(5 * time.Second)
+// Asynchronously attempts to form TCP handshake with given node. Returns when successful.
+func (awscr *AWSCommandRunner) WaitConnectionPossible(node *EC2Node, cons *Console) error {
+
+	success := make(chan bool, 1)
+	listener, err := ioutil.TempFile("", "ligand_listener")
+	if err != nil {
+		return err
+	}
+	fmt.Println(listener.Name())
+
+	// Spawns process to attempt connection
+	go attemptConnect(listener, node)
+
+	scanner := bufio.NewScanner(listener)
+	for true {
+		for scanner.Scan() {
+			fmt.Println("SUCCESS: ", scanner.Text())
+		}
 	}
 
-	return nil
+	select {
+	case _ = <-success:
+		return nil
+	}
+
+}
+
+func attemptConnect(listener *os.File, node *EC2Node) {
+
+	key := os.Getenv("HOME") + "/.ssh/latch.pem"
+	runner := exec.Command("ssh", "-oStrictHostKeyChecking=no", fmt.Sprintf("%s@%s", node.instanceOsUser, node.publicIpAddress), fmt.Sprintf("-i%s", key), "-y", "echo 'ROSA PARKS'")
+
+	runner.Stdin = os.Stdin
+	runner.Stdout = listener
+	runner.Stderr = os.Stderr
+	runner.Run()
+
+	time.Sleep(10 * time.Second)
+	fmt.Printf("starting again...")
+	go attemptConnect(listener, node)
+
 }
 
 func (awscr *AWSCommandRunner) WaitNodeRunning(node *EC2Node, cons *Console) (bool, error) {
@@ -65,7 +103,7 @@ func (awscr *AWSCommandRunner) WaitNodeRunning(node *EC2Node, cons *Console) (bo
 	svc := ec2.New(awscr.sess)
 
 	success := make(chan bool, 1)
-	go attemptConnect(svc, node, success)
+	go pingAvailability(svc, node, success)
 
 	select {
 	case suc := <-success:
@@ -75,10 +113,9 @@ func (awscr *AWSCommandRunner) WaitNodeRunning(node *EC2Node, cons *Console) (bo
 }
 
 // Concurrent routine to ping for instance availability.
-func attemptConnect(svc *ec2.EC2, node *EC2Node, success chan bool) {
+func pingAvailability(svc *ec2.EC2, node *EC2Node, success chan bool) {
 
-	fmt.Println("spawned attempt routine")
-
+	fmt.Print(".")
 	input := &ec2.DescribeInstancesInput{
 		InstanceIds: []*string{aws.String(node.instanceID)},
 	}
@@ -88,9 +125,9 @@ func attemptConnect(svc *ec2.EC2, node *EC2Node, success chan bool) {
 			switch aerr.Code() {
 			default:
 				fmt.Println(err.Error())
-				fmt.Println("Trying again...")
 				time.Sleep(1 * time.Second)
-				attemptConnect(svc, node, success)
+				go pingAvailability(svc, node, success)
+				return
 			}
 		} else {
 			fmt.Println(err.Error())
@@ -99,16 +136,14 @@ func attemptConnect(svc *ec2.EC2, node *EC2Node, success chan bool) {
 	}
 
 	state := result.Reservations[0].Instances[0].State
-	fmt.Println(state)
 	ip := result.Reservations[0].Instances[0].PublicIpAddress
 	if *state.Name == "running" {
-		fmt.Printf("\nip name: %+v", *ip)
 		node.publicIpAddress = *ip
 		success <- true
 		return
 	}
 	time.Sleep(1 * time.Second)
-	go attemptConnect(svc, node, success)
+	go pingAvailability(svc, node, success)
 }
 
 func (awscr *AWSCommandRunner) RsyncUp(source string, node *EC2Node, console *Console) error {

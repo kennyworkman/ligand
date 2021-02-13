@@ -20,12 +20,14 @@ type NodeProvider interface {
 //	* moving around of files
 
 func RunJob(np NodeProvider, cr CommandRunner, job *Job) {
+
+	fmt.Println("Provisioning your node from AWS...")
 	node, err := np.GetNode()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("Waiting for your node to be available...")
+	fmt.Println("Waiting until AWS starts your node...")
 	success, err := cr.WaitNodeRunning(node, &Console{})
 	if err != nil {
 		fmt.Printf("out chan: %+v", success)
@@ -33,22 +35,31 @@ func RunJob(np NodeProvider, cr CommandRunner, job *Job) {
 	}
 
 	// Setup machine command
+	fmt.Println("Setting up your node's OS and installing dependencies...")
+	err = cr.WaitConnectionPossible(node, &Console{})
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	err = cr.Run(setupCommand(job), node, &Console{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	fmt.Println("Copying your entry point to your node...")
 	err = cr.RsyncUp(job.Script, node, &Console{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	fmt.Println("Running your entrypoint:\n")
 	_, sourceFile := filepath.Split(job.Script)
 	err = cr.Run(fmt.Sprintf("python%s /home/ubuntu/%s", job.PythonVersion, sourceFile), node, &Console{})
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	fmt.Println("Destroying your node.")
 	err = np.DestroyNode(node)
 	if err != nil {
 		log.Fatal(err)
@@ -73,6 +84,5 @@ func setupCommand(job *Job) string {
 		cmd += fmt.Sprintf("\npython%s -m pip install %s==%s", job.PythonVersion, k, v)
 	}
 	cmd += fmt.Sprintf("\npython%s -m pip show six", job.PythonVersion)
-	fmt.Printf(cmd)
 	return cmd
 }
